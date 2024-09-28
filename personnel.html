@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recevoir le Suivi du Personnel</title>
+    <style>
+        /* Styles de base */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 25px;
+            width: 100%;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Contenu principal */
+        main {
+            margin-top: 30px;
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Bouton */
+        button {
+            background-color: #1abc9c;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            max-width: 400px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #16a085;
+        }
+
+        /* Sélecteur de jour */
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-top: 20px;
+            appearance: none;
+            background-color: #ffffff;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        /* Table des données */
+        .personnel-display {
+            display: none;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #dcdde1;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        td {
+            background-color: #f8f9fa;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #ecf0f1;
+        }
+
+        /* Pied de page */
+        footer {
+            text-align: center;
+            font-size: 18px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            width: 100%;
+            margin-top: 40px;
+        }
+
+        /* Adaptation pour mobile */
+        @media (max-width: 600px) {
+            header {
+                font-size: 24px;
+                padding: 20px;
+            }
+
+            main {
+                margin-top: 20px;
+                width: 95%;
+                padding: 15px;
+            }
+
+            button {
+                font-size: 16px;
+                padding: 12px;
+            }
+
+            table, th, td {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Recevoir le Suivi du Personnel</h1>
+    </header>
+
+    <main>
+        <button id="retrieveData">Récupérer les données</button>
+
+        <div id="daySelection" class="day-selection">
+            <label for="dayDropdown">Sélectionnez un jour:</label>
+            <select id="dayDropdown"></select>
+        </div>
+
+        <div id="personnelDisplay" class="personnel-display">
+            <h2>Détails du <span id="selectedDay"></span></h2>
+            <table id="personnelTable">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Poste</th>
+                        <th>Nombre</th>
+                        <th>Présent</th>
+                        <th>Observations</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        MArisk
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCghSU4XaIPpjeZgHSxsOgOH6t7a87hL1w",
+            authDomain: "medah-783c4.firebaseapp.com",
+            databaseURL: "https://medah-783c4-default-rtdb.firebaseio.com",
+            projectId: "medah-783c4",
+            storageBucket: "medah-783c4.appspot.com",
+            messagingSenderId: "102409410956",
+            appId: "1:102409410956:web:fe54174c5fcceedc2edea9",
+            measurementId: "G-RBPZNZ2PSL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        document.getElementById("retrieveData").addEventListener("click", function() {
+            const daySelectionDiv = document.getElementById("daySelection");
+            daySelectionDiv.style.display = "block";
+            const dayDropdown = document.getElementById("dayDropdown");
+            dayDropdown.innerHTML = `<option value="" disabled selected>Choisir un jour...</option>`;
+            const days = [
+                ...Array(31).keys()
+            ].map(i => `septembre ${i + 1}`).concat([...Array(30).keys()].map(i => `octobre ${i + 1}`));
+            days.forEach(day => {
+                const option = document.createElement("option");
+                option.value = day;
+                option.textContent = day;
+                dayDropdown.appendChild(option);
+            });
+        });
+
+        document.getElementById("dayDropdown").addEventListener("change", function() {
+            const selectedDay = this.value;
+            document.getElementById("selectedDay").textContent = selectedDay;
+            document.getElementById("personnelDisplay").style.display = "block";
+            const tableBody = document.getElementById("personnelTable").querySelector("tbody");
+            tableBody.innerHTML = ''; // Clear previous rows
+
+            const personnelRef = ref(db, 'days/' + selectedDay);
+            onValue(personnelRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    data.forEach(personnel => {
+                        const row = tableBody.insertRow();
+                        row.innerHTML = `
+                            <td>${personnel.nom}</td>
+                            <td>${personnel.poste}</td>
+                            <td>${personnel.nombre}</td>
+                            <td>${personnel.present ? 'Oui' : 'Non'}</td>
+                            <td>${personnel.observations}</td>
+                        `;
+                    });
+                } else {
+                    alert('Aucune donnée disponible pour le jour sélectionné.');
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
